@@ -1,0 +1,7 @@
+anonymous_enable: YES
+anon_upload_enable: YES
+anon_mkdir_write_enable: YES
+anon_root: /var/ftp/pub
+no_anon_password: YES
+
+conf_path: /etc/vsftpd/vsftpd.conf

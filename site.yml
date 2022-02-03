@@ -1,0 +1,7 @@
+---
+- name: Install Apache and vsftpd
+  hosts: web_app
+  gather_facts: False
+  roles:
+    - webserver
+    - ftpserver

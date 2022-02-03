@@ -1,0 +1,66 @@
+---
+- name: install vsftpd package
+  yum:
+    name: vsftpd
+    state: present
+
+- name: start vsftpd service
+  service:
+    name: vsftpd
+    state: started
+    enabled: yes
+
+- name: get info about services
+  service_facts:
+  register: services_info
+
+- name: set fact
+  set_fact:
+    vsftpd_state: >
+      '{{ vars["services_info"]["ansible_facts"]["services"]
+      ["vsftpd.service"]["state"] }}'
+
+- name: stop playbook if vsftpd is not running
+  fail:
+    msg: vsftpd_state
+  when: vsftpd_state != "'running'\n"
+
+- name: continue playbook if vsftpd is running and show status
+  debug:
+    var: vsftpd_state
+
+- name: create vsftpd.conf from template
+  template:
+    src: vsftpd.conf.j2
+    dest: "{{ conf_path }}"
+  notify: "restart_vsftpd"
+
+- name: create pub folder
+  file:
+    path: /var/ftp/pub
+    mode: '755'
+    state: directory
+
+- name: create and set setype and mode on upload folder
+  file:
+    path: /var/ftp/pub/upload
+    setype: public_content_rw_t
+    mode: '777' 
+    state: directory
+
+- name: get sebool ftpd_anon_write
+  command: getsebool ftpd_anon_write
+  register: sebool
+  changed_when: false
+
+- name: set sebool ftpd_anon_write
+  command: setsebool -P ftpd_anon_write 1
+  when: sebool["stdout_lines"][0] == "ftpd_anon_write --> off"
+
+- name: open ftp via firewalld
+  firewalld:
+    zone: public
+    service: ftp
+    permanent: yes
+    state: enabled
+    immediate: yes

@@ -1,0 +1,51 @@
+---
+- name: install httpd package
+  yum:
+    name: httpd
+    state: present
+
+- name: start httpd service
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+
+- name: get info about services
+  service_facts:
+  register: services_info
+
+- name: set fact
+  set_fact:
+    httpd_state: >
+      '{{ vars["services_info"]["ansible_facts"]["services"]
+      ["httpd.service"]["state"] }}'
+
+- name: stop playbook if httpd is not running
+  fail:
+    msg: httpd_state
+  when: httpd_state != "'running'\n"
+
+- name: continue playbook if httpd is running and show status
+  debug:
+    var: httpd_state
+
+- name: create index.html from template
+  template:
+    src: index.html.j2
+    dest: "{{ index_path }}"
+        
+- name: open http via firewalld
+  firewalld:
+    zone: public
+    service: http
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: open https via firewalld
+  firewalld:
+    zone: public
+    service: https
+    permanent: yes
+    state: enabled
+    immediate: yes
